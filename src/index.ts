@@ -1,6 +1,5 @@
 interface CanvasRenderingContext2D  {
     drawGrid(): void;
-    drawTicks(): void;
     drawLabels(): void;
     metersToPixels(...meterValues: number[]): number[]
     transformCoordinates(ctx: CanvasRenderingContext2D, x: number, y: number): [number, number]
@@ -17,25 +16,55 @@ const originalGetContext = HTMLCanvasElement.prototype.getContext;
 // @ts-ignore
 HTMLCanvasElement.prototype.getContext = function (contextId, options) {
     if (contextId === "2dGrid") {
-        let context = originalGetContext.call(this, "2d", options) as CanvasRenderingContext2D
-        let shorterSide = Math.min(this.width, this.height);
-        let pixelMeterRatio = shorterSide / 200;
-        context.pixelMeterRatio = pixelMeterRatio
-        if (this.width >= this.height) {
-            context.X_MINMAX = [-(context.canvas.width / 2) / pixelMeterRatio, (context.canvas.width / 2) / pixelMeterRatio];
-            context.Y_MINMAX = [-100, 100];
-        }else {
-            context.X_MINMAX = [-100, 100];
-            context.Y_MINMAX = [-(context.canvas.height/ 2) / pixelMeterRatio, (context.canvas.height/ 2) / pixelMeterRatio];
-            
-        }
+        let context = originalGetContext.call(this, "2d", options) as CanvasRenderingContext2D;
+
+        const updateContextProperties = () => {
+            const shorterSide = Math.min(this.width, this.height);
+            const pixelMeterRatio = shorterSide / 200;
+            context.pixelMeterRatio = pixelMeterRatio;
+
+            if (this.width >= this.height) {
+                context.X_MINMAX = [
+                    -(this.width / 2) / pixelMeterRatio,
+                    (this.width / 2) / pixelMeterRatio,
+                ];
+                context.Y_MINMAX = [-100, 100];
+            } else {
+                context.X_MINMAX = [-100, 100];
+                context.Y_MINMAX = [
+                    -(this.height / 2) / pixelMeterRatio,
+                    (this.height / 2) / pixelMeterRatio,
+                ];
+            }
+        };
+
+        // Call once to initialize
+        updateContextProperties();
+
+        // Observe changes to the canvas size
+        const resizeObserver = new ResizeObserver(() => {
+            updateContextProperties();
+        });
+
+        resizeObserver.observe(this);
+
+        // Clean up observer when canvas is removed from the DOM
+        const mutationObserver = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                if (Array.from(mutation.removedNodes).includes(this)) {
+                    resizeObserver.unobserve(this);
+                    mutationObserver.disconnect();
+                }
+            }
+        });
+
+        mutationObserver.observe(document.body, { childList: true, subtree: true });
 
         return context;
     } else {
         return originalGetContext.call(this, contextId, options);
     }
-}
-
+};
 
 CanvasRenderingContext2D.prototype.metersToPixels = function (...meterValues: number[]) {
     return meterValues.map((meterValue) => { return meterValue * this.pixelMeterRatio })
@@ -110,19 +139,7 @@ CanvasRenderingContext2D.prototype.drawLabels = function(){
     }
 }
 
-//function that draws a ticks on the canvas
-CanvasRenderingContext2D.prototype.drawTicks = function(){
 
-
-    this.moveTo(this.X_MINMAX[0], 0);
-    this.lineTo(this.X_MINMAX[1], 0);
-    this.moveTo(0, this.Y_MINMAX[0]);
-    this.lineTo(0, this.Y_MINMAX[1]);
-
-
-    this.stroke();
-    
-}
 
 // Override `rect`
 const originalRect = CanvasRenderingContext2D.prototype.rect;
@@ -168,4 +185,12 @@ CanvasRenderingContext2D.prototype.fillText = function (text: string, x: number,
     return originalFillText.call(this, text, newX, newY, maxWidth);
 };
 
+
+// Override `fillRect`
+const originalFillRect = CanvasRenderingContext2D.prototype.fillRect;
+CanvasRenderingContext2D.prototype.fillRect = function (x: number, y: number, width: number, height: number) {
+    const [newX, newY] = this.transformCoordinates(this, x, y);
+    [width, height] = this.metersToPixels(width, height)
+    return originalFillRect.call(this, newX - (width/2), newY - (height/2), width, height);
+};
 
