@@ -17,7 +17,7 @@ canvas.height = window.outerHeight * .9;
 document.body.appendChild(button);  
 
 document.body.appendChild(canvas);
-const context = canvas.getContext("2dGrid") as CanvasRenderingContext2D;
+const context = canvas.getContext("2dGrid", {minAxisLength: 100, color: "pink"}) as CanvasRenderingContext2D;
 
 context.drawGrid();
 let start;
