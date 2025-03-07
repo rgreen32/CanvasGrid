@@ -1,7 +1,7 @@
 # Based on https://raw.githubusercontent.com/github/gitignore/main/Node.gitignore
 node_modules./dev
 demo/main.js
-.devcontainer
+
 
 # Logs
 
