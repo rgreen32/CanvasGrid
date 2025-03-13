@@ -8,9 +8,9 @@
     "build:types": "tsc --emitDeclarationOnly --outDir dist",
     "build": "bun build src/index.ts --outdir dist --format esm --minify",
     "dev": "concurrently \"bun build src/index.ts --outdir dist --format esm --minify --watch\" \"tsc --emitDeclarationOnly --outDir dist --watch\" \"bun build demo/main.ts --outdir demo --format esm --minify --watch\" "
-
   },
   "devDependencies": {
-    "concurrently": "^9.1.0"
+    "concurrently": "^9.1.0",
+    "typescript": "^5.8.2"
   }
 }

@@ -1,4 +1,4 @@
-import '../dist/index.js';
+import '../../dist/index.js';
 
 const button = document.createElement("button");
 button.innerText = "Add 10 to canvas width";
